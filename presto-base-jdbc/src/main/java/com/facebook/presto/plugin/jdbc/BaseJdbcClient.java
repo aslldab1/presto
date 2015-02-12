@@ -13,42 +13,6 @@
  */
 package com.facebook.presto.plugin.jdbc;
 
-import com.facebook.presto.spi.ColumnMetadata;
-import com.facebook.presto.spi.ConnectorColumnHandle;
-import com.facebook.presto.spi.ConnectorPartition;
-import com.facebook.presto.spi.ConnectorPartitionResult;
-import com.facebook.presto.spi.ConnectorSplitSource;
-import com.facebook.presto.spi.ConnectorTableMetadata;
-import com.facebook.presto.spi.FixedSplitSource;
-import com.facebook.presto.spi.PrestoException;
-import com.facebook.presto.spi.SchemaTableName;
-import com.facebook.presto.spi.TableNotFoundException;
-import com.facebook.presto.spi.TupleDomain;
-import com.facebook.presto.spi.type.Type;
-import com.google.common.base.Joiner;
-import com.google.common.base.Throwables;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import io.airlift.log.Logger;
-
-import javax.annotation.Nullable;
-
-import java.sql.Connection;
-import java.sql.DatabaseMetaData;
-import java.sql.Driver;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.sql.Types;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import java.util.UUID;
-
 import static com.facebook.presto.spi.StandardErrorCode.NOT_FOUND;
 import static com.facebook.presto.spi.StandardErrorCode.NOT_SUPPORTED;
 import static com.facebook.presto.spi.type.BigintType.BIGINT;
@@ -68,6 +32,43 @@ import static com.google.common.collect.Iterables.getOnlyElement;
 import static com.google.common.collect.Maps.fromProperties;
 import static java.util.Collections.nCopies;
 import static java.util.Locale.ENGLISH;
+import io.airlift.log.Logger;
+
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.Driver;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Types;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+import java.util.UUID;
+
+import javax.annotation.Nullable;
+
+import com.facebook.presto.spi.ColumnMetadata;
+import com.facebook.presto.spi.ConnectorColumnHandle;
+import com.facebook.presto.spi.ConnectorPartition;
+import com.facebook.presto.spi.ConnectorPartitionResult;
+import com.facebook.presto.spi.ConnectorSplitSource;
+import com.facebook.presto.spi.ConnectorTableMetadata;
+import com.facebook.presto.spi.FixedSplitSource;
+import com.facebook.presto.spi.PrestoException;
+import com.facebook.presto.spi.SchemaTableName;
+import com.facebook.presto.spi.TableNotFoundException;
+import com.facebook.presto.spi.TupleDomain;
+import com.facebook.presto.spi.type.Type;
+import com.facebook.presto.sql.planner.optimizations.estimater.SemijoinMetadata;
+import com.google.common.base.Joiner;
+import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 
 public class BaseJdbcClient
         implements JdbcClient
@@ -466,4 +467,32 @@ public class BaseJdbcClient
         }
         return properties;
     }
+
+	@Override
+	public SemijoinMetadata getSemijoinMetadata(SchemaTableName table) {
+		try (Connection connection = driver.connect(connectionUrl,
+				connectionProperties)) {
+			SemijoinMetadata metadata = new SemijoinMetadata();
+			String schemaName = table.getSchemaName();
+			String tableName = table.getTableName();
+			
+			DatabaseMetaData meta = connection.getMetaData();
+			ResultSet columns = meta.getColumns(schemaName, null, tableName, null);
+			while(columns.next())
+			{
+				metadata.putColumnMap(columns.getString("COLUMN_NAME"), columns.getInt("COLUMN_SIZE"));
+			}
+			try (Statement statement = connection.createStatement()) {
+				ResultSet resultSet = statement
+						.executeQuery("select count(*) from " + schemaName
+								+ "." + tableName);
+				if (resultSet.next())
+					metadata.setRowCount(resultSet.getLong(1));
+			}
+			return metadata;
+		} catch (SQLException e) {
+			throw Throwables.propagate(e);
+		}
+	}
+	
 }

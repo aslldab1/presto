@@ -13,18 +13,24 @@
  */
 package com.facebook.presto.plugin.postgresql;
 
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.Collection;
+
+import javax.inject.Inject;
+
+import org.postgresql.Driver;
+
 import com.facebook.presto.plugin.jdbc.BaseJdbcClient;
 import com.facebook.presto.plugin.jdbc.BaseJdbcConfig;
 import com.facebook.presto.plugin.jdbc.JdbcConnectorId;
 import com.facebook.presto.plugin.jdbc.JdbcOutputTableHandle;
+import com.facebook.presto.spi.SchemaTableName;
+import com.facebook.presto.sql.planner.optimizations.estimater.SemijoinMetadata;
 import com.google.common.base.Throwables;
-import org.postgresql.Driver;
-
-import javax.inject.Inject;
-
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.util.Collection;
 
 public class PostgreSqlClient
         extends BaseJdbcClient
@@ -52,5 +58,30 @@ public class PostgreSqlClient
         catch (SQLException e) {
             throw Throwables.propagate(e);
         }
+    }
+    
+    @Override
+    public SemijoinMetadata getSemijoinMetadata(SchemaTableName table) {
+    	try (Connection connection = driver.connect(connectionUrl,
+				connectionProperties)) {
+    		SemijoinMetadata metadata = new SemijoinMetadata();
+			String schemaName = table.getSchemaName();
+			String tableName = table.getTableName();
+			DatabaseMetaData meta = connection.getMetaData();
+			ResultSet columns = meta.getColumns(null, schemaName, tableName, null);
+			while(columns.next())
+			{
+				metadata.putColumnMap(columns.getString("COLUMN_NAME"), columns.getInt("COLUMN_SIZE"));
+			}
+			try (Statement statement = connection.createStatement()) {
+				ResultSet resultSet = statement
+						.executeQuery("SELECT reltuples FROM pg_class r JOIN pg_namespace n ON (relnamespace = n.oid) WHERE relkind = 'r' AND n.nspname = '" + schemaName + "' and relname = '" + tableName + "'");
+				if (resultSet.next())
+					metadata.setRowCount(resultSet.getLong(1));
+			}
+			return metadata;
+		} catch (SQLException e) {
+			throw Throwables.propagate(e);
+		}
     }
 }

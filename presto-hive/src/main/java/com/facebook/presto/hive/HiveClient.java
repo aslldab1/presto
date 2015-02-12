@@ -60,10 +60,12 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Ordering;
 import com.google.inject.Inject;
+
 import io.airlift.concurrent.BoundedExecutor;
 import io.airlift.log.Logger;
 import io.airlift.slice.Slice;
 import io.airlift.units.DataSize;
+
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.common.FileUtils;
 import org.apache.hadoop.hive.metastore.ProtectMode;
@@ -1397,4 +1399,10 @@ public class HiveClient
         }
         return TupleDomain.withColumnDomains(builder.build());
     }
+
+	@Override
+	public Map<String, Integer> getSemijoinMetadata(SchemaTableName tableName) {
+		// TODO Auto-generated method stub
+		return null;
+	}
 }

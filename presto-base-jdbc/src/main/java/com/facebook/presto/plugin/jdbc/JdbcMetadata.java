@@ -24,12 +24,14 @@ import com.facebook.presto.spi.ConnectorTableMetadata;
 import com.facebook.presto.spi.SchemaTableName;
 import com.facebook.presto.spi.SchemaTablePrefix;
 import com.facebook.presto.spi.TableNotFoundException;
+import com.facebook.presto.sql.planner.optimizations.estimater.SemijoinMetadata;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
 import javax.inject.Inject;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -193,4 +195,14 @@ public class JdbcMetadata
     {
         return ImmutableMap.of();
     }
+
+	@Override
+	public Map<String, Integer> getSemijoinMetadata(SchemaTableName tableName) {
+		SemijoinMetadata metadata = jdbcClient.getSemijoinMetadata(tableName);
+		Map<String, Integer> map = new HashMap<String, Integer>();
+		for(String key : metadata.getColumnMap().keySet())
+			map.put(key, metadata.getColumnMap().get(key));
+		map.put("ROW_COUNT", metadata.getRowCount().intValue());
+		return map;
+	}
 }

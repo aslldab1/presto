@@ -43,6 +43,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimaps;
+
 import org.skife.jdbi.v2.Handle;
 import org.skife.jdbi.v2.IDBI;
 import org.skife.jdbi.v2.TransactionCallback;
@@ -455,4 +456,10 @@ public class RaptorMetadata
             }
         };
     }
+
+	@Override
+	public Map<String, Integer> getSemijoinMetadata(SchemaTableName tableName) {
+		// TODO Auto-generated method stub
+		return null;
+	}
 }

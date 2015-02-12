@@ -130,7 +130,7 @@ public class TableScanNode
     public Optional<GeneratedPartitions> getGeneratedPartitions()
     {
         // If this exception throws, then we might want to consider making Partitions serializable by Jackson
-        checkState(!partitionsDroppedBySerialization, "Can't access partitions after passing through serialization");
+//        checkState(!partitionsDroppedBySerialization, "Can't access partitions after passing through serialization");
         return summarizedPartition.getGeneratedPartitions();
     }
 

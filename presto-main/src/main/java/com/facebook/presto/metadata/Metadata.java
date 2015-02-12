@@ -13,19 +13,20 @@
  */
 package com.facebook.presto.metadata;
 
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+
+import javax.validation.constraints.NotNull;
+
 import com.facebook.presto.Session;
 import com.facebook.presto.spi.ColumnMetadata;
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.spi.type.TypeManager;
 import com.facebook.presto.spi.type.TypeSignature;
+import com.facebook.presto.sql.planner.optimizations.estimater.SemijoinMetadata;
 import com.facebook.presto.sql.tree.QualifiedName;
 import com.google.common.base.Optional;
-
-import javax.validation.constraints.NotNull;
-
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
 
 public interface Metadata
 {
@@ -179,6 +180,15 @@ public interface Metadata
      */
     void dropView(Session session, QualifiedTableName viewName);
 
+    /**
+     * Get row count of table
+     * only support for JdbcMetadata
+     * @param session
+     * @param viewName
+     * @return
+     */
+    Optional<SemijoinMetadata> getSemijoinMetadata(Session session, QualifiedTableName table);
+    
     FunctionRegistry getFunctionRegistry();
 
     TypeManager getTypeManager();

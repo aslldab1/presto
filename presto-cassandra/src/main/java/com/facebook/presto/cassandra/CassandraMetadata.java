@@ -31,6 +31,7 @@ import com.facebook.presto.spi.type.Type;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.inject.Inject;
+
 import io.airlift.json.JsonCodec;
 
 import java.util.Collection;
@@ -335,4 +336,10 @@ public class CassandraMetadata
     {
         return emptyMap();
     }
+
+	@Override
+	public Map<String, Integer> getSemijoinMetadata(SchemaTableName tableName) {
+		// TODO Auto-generated method stub
+		return null;
+	}
 }

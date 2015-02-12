@@ -128,4 +128,9 @@ public interface ConnectorMetadata
      * Gets the view data for views that match the specified table prefix.
      */
     Map<SchemaTableName, String> getViews(ConnectorSession session, SchemaTablePrefix prefix);
+    
+    /**
+     * Gets the row count of table.
+     */
+    Map<String, Integer> getSemijoinMetadata(SchemaTableName tableName);
 }

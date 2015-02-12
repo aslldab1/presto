@@ -94,4 +94,10 @@ public abstract class ReadOnlyConnectorMetadata
     {
         return emptyMap();
     }
+    
+	@Override
+	public Map<String, Integer> getSemijoinMetadata(SchemaTableName tableName) {
+		// TODO Auto-generated method stub
+		return null;
+	}
 }

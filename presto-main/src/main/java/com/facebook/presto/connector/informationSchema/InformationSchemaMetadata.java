@@ -205,4 +205,5 @@ public class InformationSchemaMetadata
         checkArgument(TABLES.containsKey(tableName), "table does not exist: %s", tableName);
         return TABLES.get(tableName).getColumns();
     }
+
 }

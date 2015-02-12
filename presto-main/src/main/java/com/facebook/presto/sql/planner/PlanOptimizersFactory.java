@@ -13,6 +13,11 @@
  */
 package com.facebook.presto.sql.planner;
 
+import java.util.List;
+import java.util.Map;
+
+import javax.inject.Provider;
+
 import com.facebook.presto.index.IndexManager;
 import com.facebook.presto.metadata.Metadata;
 import com.facebook.presto.split.SplitManager;
@@ -30,16 +35,15 @@ import com.facebook.presto.sql.planner.optimizations.PlanOptimizer;
 import com.facebook.presto.sql.planner.optimizations.PredicatePushDown;
 import com.facebook.presto.sql.planner.optimizations.PruneRedundantProjections;
 import com.facebook.presto.sql.planner.optimizations.PruneUnreferencedOutputs;
+import com.facebook.presto.sql.planner.optimizations.SemijoinOptimizer;
 import com.facebook.presto.sql.planner.optimizations.SetFlatteningOptimizer;
 import com.facebook.presto.sql.planner.optimizations.SimplifyExpressions;
 import com.facebook.presto.sql.planner.optimizations.UnaliasSymbolReferences;
 import com.facebook.presto.sql.planner.optimizations.WindowFilterPushDown;
+import com.facebook.presto.sql.planner.optimizations.estimater.LouLoader;
+import com.facebook.presto.sql.planner.optimizations.estimater.SemijoinMetadata;
 import com.google.common.collect.ImmutableList;
 import com.google.inject.Inject;
-
-import javax.inject.Provider;
-
-import java.util.List;
 
 public class PlanOptimizersFactory
         implements Provider<List<PlanOptimizer>>
@@ -58,7 +62,6 @@ public class PlanOptimizersFactory
                 new PruneRedundantProjections(),
                 new SetFlatteningOptimizer(),
                 new LimitPushDown(), // Run the LimitPushDown after flattening set operators to make it easier to do the set flattening
-                new PredicatePushDown(metadata, sqlParser, splitManager, featuresConfig.isExperimentalSyntaxEnabled()),
                 new PredicatePushDown(metadata, sqlParser, splitManager, featuresConfig.isExperimentalSyntaxEnabled()), // Run predicate push down one more time in case we can leverage new information from generated partitions
                 new MergeProjections(),
                 new SimplifyExpressions(metadata, sqlParser), // Re-run the SimplifyExpressions to simplify any recomposed expressions from other optimizations
@@ -71,6 +74,14 @@ public class PlanOptimizersFactory
                 new PruneUnreferencedOutputs(), // Make sure to run this at the end to help clean the plan for logging/execution and not remove info that other optimizers might need at an earlier point
                 new PruneRedundantProjections()); // This MUST run after PruneUnreferencedOutputs as it may introduce new redundant projections
 
+        //decide whether use semijoin optimize
+        Map<String, Double> properties = LouLoader.getLouMap();
+        double enable = properties.get("enable.optimize");
+        if(enable == 1)
+        {
+        	builder.add(new SemijoinOptimizer(metadata));
+        }
+        
         if (featuresConfig.isOptimizeMetadataQueries()) {
             builder.add(new MetadataQueryOptimizer(metadata, splitManager));
         }

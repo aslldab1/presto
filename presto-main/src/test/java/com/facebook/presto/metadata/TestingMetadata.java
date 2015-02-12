@@ -285,4 +285,10 @@ public class TestingMetadata
             return type;
         }
     }
+
+	@Override
+	public Map<String, Integer> getSemijoinMetadata(SchemaTableName tableName) {
+		// TODO Auto-generated method stub
+		return null;
+	}
 }

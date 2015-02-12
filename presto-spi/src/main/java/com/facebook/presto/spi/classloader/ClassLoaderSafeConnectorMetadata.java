@@ -209,4 +209,10 @@ public class ClassLoaderSafeConnectorMetadata
             return delegate.toString();
         }
     }
+
+	@Override
+	public Map<String, Integer> getSemijoinMetadata(SchemaTableName tableName) {
+		// TODO Auto-generated method stub
+		return null;
+	}
 }

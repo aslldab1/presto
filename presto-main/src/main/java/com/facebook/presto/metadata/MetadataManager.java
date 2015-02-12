@@ -13,10 +13,37 @@
  */
 package com.facebook.presto.metadata;
 
+import static com.facebook.presto.metadata.MetadataUtil.checkCatalogName;
+import static com.facebook.presto.metadata.QualifiedTableName.convertFromSchemaTableName;
+import static com.facebook.presto.spi.StandardErrorCode.INVALID_VIEW;
+import static com.facebook.presto.spi.StandardErrorCode.NOT_FOUND;
+import static com.facebook.presto.spi.StandardErrorCode.SYNTAX_ERROR;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Iterables.transform;
+import static java.lang.String.format;
+import io.airlift.json.JsonCodec;
+import io.airlift.json.JsonCodecFactory;
+import io.airlift.json.ObjectMapperProvider;
+
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+
+import javax.inject.Inject;
+
 import com.facebook.presto.Session;
 import com.facebook.presto.connector.informationSchema.InformationSchemaMetadata;
 import com.facebook.presto.connector.system.SystemTablesManager;
 import com.facebook.presto.connector.system.SystemTablesMetadata;
+import com.facebook.presto.metadata.ViewDefinition.ViewColumn;
 import com.facebook.presto.spi.ColumnMetadata;
 import com.facebook.presto.spi.ConnectorColumnHandle;
 import com.facebook.presto.spi.ConnectorInsertTableHandle;
@@ -32,6 +59,7 @@ import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.spi.type.TypeManager;
 import com.facebook.presto.spi.type.TypeSignature;
 import com.facebook.presto.sql.analyzer.FeaturesConfig;
+import com.facebook.presto.sql.planner.optimizations.estimater.SemijoinMetadata;
 import com.facebook.presto.sql.tree.QualifiedName;
 import com.facebook.presto.type.TypeDeserializer;
 import com.facebook.presto.type.TypeRegistry;
@@ -42,33 +70,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
-import io.airlift.json.JsonCodec;
-import io.airlift.json.JsonCodecFactory;
-import io.airlift.json.ObjectMapperProvider;
-
-import javax.inject.Inject;
-
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-
-import static com.facebook.presto.metadata.MetadataUtil.checkCatalogName;
-import static com.facebook.presto.metadata.QualifiedTableName.convertFromSchemaTableName;
-import static com.facebook.presto.metadata.ViewDefinition.ViewColumn;
-import static com.facebook.presto.spi.StandardErrorCode.INVALID_VIEW;
-import static com.facebook.presto.spi.StandardErrorCode.NOT_FOUND;
-import static com.facebook.presto.spi.StandardErrorCode.SYNTAX_ERROR;
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.collect.Iterables.transform;
-import static java.lang.String.format;
 
 public class MetadataManager
         implements Metadata
@@ -559,4 +560,25 @@ public class MetadataManager
         provider.setJsonDeserializers(ImmutableMap.<Class<?>, JsonDeserializer<?>>of(Type.class, new TypeDeserializer(new TypeRegistry())));
         return new JsonCodecFactory(provider).jsonCodec(ViewDefinition.class);
     }
+
+	@Override
+	public Optional<SemijoinMetadata> getSemijoinMetadata(Session session, QualifiedTableName table) {
+		checkNotNull(table, "table is null");
+
+        ConnectorMetadataEntry entry = getConnectorFor(table);
+        if (entry != null) {
+            ConnectorMetadata metadata = entry.getMetadata();
+
+            Map<String, Integer> map = metadata.getSemijoinMetadata(table.asSchemaTableName());
+            SemijoinMetadata semijoinMetadata = new SemijoinMetadata();
+            Long rowCount = map.remove("ROW_COUNT").longValue();
+            semijoinMetadata.setRowCount(rowCount);
+            for(String key : map.keySet())
+            	semijoinMetadata.putColumnMap(key, map.get(key));
+            if (semijoinMetadata != null) {
+                return Optional.of(semijoinMetadata);
+            }
+        }
+        return Optional.absent();
+	}
 }

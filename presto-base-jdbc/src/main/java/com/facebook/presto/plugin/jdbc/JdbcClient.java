@@ -13,20 +13,21 @@
  */
 package com.facebook.presto.plugin.jdbc;
 
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.Collection;
+import java.util.List;
+import java.util.Set;
+
+import javax.annotation.Nullable;
+
 import com.facebook.presto.spi.ConnectorColumnHandle;
 import com.facebook.presto.spi.ConnectorPartitionResult;
 import com.facebook.presto.spi.ConnectorSplitSource;
 import com.facebook.presto.spi.ConnectorTableMetadata;
 import com.facebook.presto.spi.SchemaTableName;
 import com.facebook.presto.spi.TupleDomain;
-
-import javax.annotation.Nullable;
-
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.util.Collection;
-import java.util.List;
-import java.util.Set;
+import com.facebook.presto.sql.planner.optimizations.estimater.SemijoinMetadata;
 
 public interface JdbcClient
 {
@@ -56,4 +57,7 @@ public interface JdbcClient
 
     Connection getConnection(JdbcOutputTableHandle handle)
             throws SQLException;
+    
+    SemijoinMetadata getSemijoinMetadata(SchemaTableName tableName);
+    
 }

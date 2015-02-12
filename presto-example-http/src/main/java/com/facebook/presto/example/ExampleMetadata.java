@@ -173,4 +173,6 @@ public class ExampleMetadata
         checkType(tableHandle, ExampleTableHandle.class, "tableHandle");
         return checkType(columnHandle, ExampleColumnHandle.class, "columnHandle").getColumnMetadata();
     }
+
+
 }
